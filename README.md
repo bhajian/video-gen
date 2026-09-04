@@ -33,6 +33,16 @@ ComfyUI: http://localhost:8188  TTS: http://localhost:7860
 - LTX-2.5: `custom_nodes/ComfyUI-LTXVideo/example_workflows/`.
 
 ## Notes
+- The image preserves NVIDIA's PyTorch and TorchVision versions, builds TorchAudio
+  2.8.0 against that PyTorch, and pins NumPy to 1.26.4 and OpenCV below 4.12.
+  These constraints prevent the `undefined symbol: torch_library_impl` startup
+  crash and the NumPy 1.x/2.x ABI error. TorchAudio uses the SoundFile backend for
+  audio I/O; its optional SoX, FFmpeg, and CUDA CTC decoder extensions are disabled.
+- After updating the Dockerfile, run `docker compose build comfyui`, then
+  `docker compose up -d --no-deps --force-recreate comfyui`. The build checks imports,
+  NumPy conversion, resampling, and WAV reading/writing before producing the image.
+  A custom node with incompatible dependency requirements now fails the build
+  instead of silently ignoring the installation error.
 - custom_nodes is a volume so Manager installs persist across image rebuilds.
 - If SageAttention fails to import, drop `--use-sage-attention` from COMFY_ARGS in compose; ~30% slower, still fine.
 - Do not use GGUF/fp8 quants; run bf16/fp16 for quality, VRAM is not a constraint here.
