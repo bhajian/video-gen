@@ -27,8 +27,11 @@ ComfyUI: http://localhost:8188  TTS: http://localhost:7860
 
 ## First workflows
 - In ComfyUI: Workflow > Browse Templates > Video > Wan 2.2 I2V. Drop a studio still into `data/input`.
-- Avatar: load `custom_nodes/ComfyUI-WanVideoWrapper/example_workflows/wanvideo_S2V_*.json`,
+- Avatar (speech-to-video): Workflow > Browse Templates > Video > Wan 2.2 S2V,
   point the audio loader at a WAV from the TTS service (already in `data/input`).
+- Avatar (InfiniteTalk): `custom_nodes/ComfyUI-WanVideoWrapper/example_workflows/*InfiniteTalk*.json`.
+  These also expect Kijai-format Wan 2.1 I2V weights, `clip_vision_h`, and the Lightx2v LoRA,
+  which `download-models.sh` does not fetch; grab them from `Kijai/WanVideo_comfy` as needed.
 - Video-to-video restyle: `..._VACE_*.json` in the same folder.
 - LTX-2.5: `custom_nodes/ComfyUI-LTXVideo/example_workflows/`.
 

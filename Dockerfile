@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Preserve NVIDIA's other constraints, and protect the installed torch stack.
 # NumPy 2 and newer OpenCV wheels are incompatible with this base's NumPy ABI.
+# kornia 0.8.3 dropped the `pad` re-export that ComfyUI-LTXVideo imports
+# (Lightricks/ComfyUI-LTXVideo#516, unmerged); pin until upstream fixes it.
 RUN python - <<'PY'
 from importlib.metadata import version
 from pathlib import Path
@@ -30,6 +32,7 @@ pins = {
     'opencv-python-headless': 'opencv-python-headless<4.12',
     'opencv-contrib-python': 'opencv-contrib-python<4.12',
     'opencv-contrib-python-headless': 'opencv-contrib-python-headless<4.12',
+    'kornia': 'kornia<0.8.3',
 }
 lines = constraints.read_text().splitlines() if constraints.exists() else []
 kept = []
@@ -45,12 +48,15 @@ PY
 # PyPI TorchAudio binaries do not match NVIDIA's custom PyTorch ABI.
 # Build against the installed torch, without pip replacing it or isolating it.
 # Use SoundFile for audio I/O; leave out optional SoX/FFmpeg/CTC extensions.
+# USE_CUDA=0: torchaudio 2.8's CUDA kernels use cub::Max, removed in CUDA 13's
+# CCCL 3.0, so they fail to compile. ComfyUI only uses resample/MelSpectrogram,
+# which are plain torch ops that run on GPU tensors without those kernels.
 RUN python -m pip install 'numpy==1.26.4' soundfile && \
     git clone --branch v2.8.0 --depth 1 --recurse-submodules \
       https://github.com/pytorch/audio.git /tmp/torchaudio && \
     BUILD_VERSION=2.8.0 \
     PYTORCH_VERSION="$(python -c 'from importlib.metadata import version; print(version("torch"))')" \
-    USE_CUDA=1 BUILD_SOX=0 USE_FFMPEG=0 BUILD_CUDA_CTC_DECODER=0 \
+    USE_CUDA=0 BUILD_SOX=0 USE_FFMPEG=0 BUILD_CUDA_CTC_DECODER=0 \
     CMAKE_BUILD_PARALLEL_LEVEL=8 \
       python -m pip install --no-build-isolation --no-deps --force-reinstall /tmp/torchaudio && \
     rm -rf /tmp/torchaudio
